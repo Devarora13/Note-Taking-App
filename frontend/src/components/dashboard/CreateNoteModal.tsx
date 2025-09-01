@@ -81,7 +81,7 @@ export const CreateNoteModal: React.FC<CreateNoteModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md rounded-md">
         <DialogHeader>
           <DialogTitle>Create New Note</DialogTitle>
         </DialogHeader>
@@ -97,7 +97,7 @@ export const CreateNoteModal: React.FC<CreateNoteModalProps> = ({
               placeholder="Enter note title..."
               value={formData.title}
               onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-              className={`form-input ${error ? 'border-destructive' : ''}`}
+              className={`form-input mt-2 ${error ? 'border-destructive' : ''}`}
               autoFocus
             />
             {error && <p className="text-sm text-destructive mt-1">{error}</p>}
@@ -112,7 +112,7 @@ export const CreateNoteModal: React.FC<CreateNoteModalProps> = ({
               placeholder="Add note content..."
               value={formData.content}
               onChange={(e) => setFormData({ ...formData, content: e.target.value })}
-              className="form-input min-h-[100px] resize-none"
+              className="form-input min-h-[100px] resize-none mt-2"
               rows={4}
             />
           </div>
