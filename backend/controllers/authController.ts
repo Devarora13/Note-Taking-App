@@ -7,6 +7,7 @@ const JWT_SECRET = process.env.JWT_SECRET || "supersecret";
 
 //Request OTP
 export const requestOTP = async (req: Request, res: Response) => {
+    console.log("Requesting OTP...");
   try {
     const { name, dob, email, mode } = req.body;
 

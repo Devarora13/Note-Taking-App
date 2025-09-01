@@ -1,243 +1,191 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
+import { authAPI } from '../services/api';
 
 export interface User {
-id: string;
-name: string;
-email: string;
-dateOfBirth: string;
+  id: string;
+  name: string;
+  email: string;
+  dateOfBirth: string;
 }
 
 export interface AuthState {
-user: User | null;
-isAuthenticated: boolean;
-token: string | null;
-isLoading: boolean;
+  user: User | null;
+  isAuthenticated: boolean;
+  token: string | null;
+  isLoading: boolean;
 }
 
 interface AuthContextType extends AuthState {
-signUp: (userData: Omit<User, 'id'>) => Promise<{ success: boolean; message: string }>;
-sendOTP: (email: string) => Promise<{ success: boolean; message: string }>;
-verifyOTP: (email: string, otp: string) => Promise<{ success: boolean; message: string; user?: User; token?: string }>;
-signIn: (email: string) => Promise<{ success: boolean; message: string }>;
-logout: () => void;
+  signUp: (userData: Omit<User, 'id'>) => Promise<{ success: boolean; message: string }>;
+  sendOTP: (email: string) => Promise<{ success: boolean; message: string }>;
+  verifyOTP: (email: string, otp: string) => Promise<{ success: boolean; message: string; user?: User; token?: string }>;
+  signIn: (email: string) => Promise<{ success: boolean; message: string }>;
+  logout: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const useAuth = () => {
-const context = useContext(AuthContext);
-if (context === undefined) {
-throw new Error('useAuth must be used within an AuthProvider');
-}
-return context;
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
 };
 
 interface AuthProviderProps {
-children: ReactNode;
+  children: ReactNode;
 }
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
-const [user, setUser] = useState<User | null>(null);
-const [isAuthenticated, setIsAuthenticated] = useState(false);
-const [token, setToken] = useState<string | null>(localStorage.getItem('token'));
-const [isLoading, setIsLoading] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [token, setToken] = useState<string | null>(localStorage.getItem('token'));
+  const [isLoading, setIsLoading] = useState(false);
 
-// Mock API calls - replace with actual backend later
-const signUp = async (userData: Omit<User, 'id'>): Promise<{ success: boolean; message: string }> => {
-setIsLoading(true);
+  // Check for existing token on mount
+  useEffect(() => {
+    const storedToken = localStorage.getItem('token');
+    const storedUser = localStorage.getItem('user');
+    if (storedToken && storedUser) {
+      try {
+        setToken(storedToken);
+        setUser(JSON.parse(storedUser));
+        setIsAuthenticated(true);
+      } catch (error) {
+        // Clear invalid stored data
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+      }
+    }
+  }, []);
 
-// Simulate API delay
-await new Promise(resolve => setTimeout(resolve, 1000));
+  const signUp = async (userData: Omit<User, 'id'>): Promise<{ success: boolean; message: string }> => {
+    setIsLoading(true);
 
-try {
-// Mock validation
-if (!userData.name.trim()) {
-throw new Error('Name is required');
-}
-if (!userData.email.includes('@')) {
-throw new Error('Invalid email format');
-}
-if (!userData.dateOfBirth) {
-throw new Error('Date of birth is required');
-}
+    try {
+      await authAPI.requestOTP({
+        name: userData.name,
+        email: userData.email,
+        dob: userData.dateOfBirth,
+        mode: 'signup'
+      });
 
-// Store user data temporarily for OTP verification
-localStorage.setItem('tempUserData', JSON.stringify(userData));
+      // Store user data temporarily for OTP verification
+      localStorage.setItem('tempUserData', JSON.stringify(userData));
 
-setIsLoading(false);
-return { success: true, message: 'Account created successfully. Please verify your email.' };
-} catch (error) {
-setIsLoading(false);
-return { success: false, message: (error as Error).message };
-}
-};
+      setIsLoading(false);
+      return { success: true, message: 'OTP sent to your email. Please verify to complete signup.' };
+    } catch (error) {
+      setIsLoading(false);
+      return { success: false, message: (error as Error).message };
+    }
+  };
 
-const sendOTP = async (email: string): Promise<{ success: boolean; message: string }> => {
-setIsLoading(true);
+  const sendOTP = async (email: string): Promise<{ success: boolean; message: string }> => {
+    setIsLoading(true);
 
-await new Promise(resolve => setTimeout(resolve, 800));
+    try {
+      await authAPI.requestOTP({
+        email,
+        mode: 'login'
+      });
 
-try {
-if (!email.includes('@')) {
-throw new Error('Invalid email format');
-}
+      setIsLoading(false);
+      return { success: true, message: `OTP sent to ${email}` };
+    } catch (error) {
+      setIsLoading(false);
+      return { success: false, message: (error as Error).message };
+    }
+  };
 
-// Mock OTP generation (in real app, this would be sent via email)
-const mockOTP = '123456';
-localStorage.setItem('mockOTP', mockOTP);
-localStorage.setItem('otpEmail', email);
+  const verifyOTP = async (email: string, otp: string): Promise<{ success: boolean; message: string; user?: User; token?: string }> => {
+    setIsLoading(true);
 
-setIsLoading(false);
-return { success: true, message: `OTP sent to ${email}. Use 123456 for demo.` };
-} catch (error) {
-setIsLoading(false);
-return { success: false, message: (error as Error).message };
-}
-};
+    try {
+      const response = await authAPI.verifyOTP(email, otp);
 
-const verifyOTP = async (email: string, otp: string): Promise<{ success: boolean; message: string; user?: User; token?: string }> => {
-setIsLoading(true);
+      // Extract user and token from response
+      const { user: userData, token: authToken, message } = response;
 
-await new Promise(resolve => setTimeout(resolve, 1000));
+      if (authToken && userData) {
+        // Store auth data
+        localStorage.setItem('token', authToken);
+        localStorage.setItem('user', JSON.stringify({
+          id: userData.id,
+          name: userData.name,
+          email: userData.email,
+          dateOfBirth: userData.dob
+        }));
+        localStorage.removeItem('tempUserData');
 
-try {
-const storedOTP = localStorage.getItem('mockOTP');
-const storedEmail = localStorage.getItem('otpEmail');
+        // Update state
+        setToken(authToken);
+        setUser({
+          id: userData.id,
+          name: userData.name,
+          email: userData.email,
+          dateOfBirth: userData.dob
+        });
+        setIsAuthenticated(true);
+      }
 
-if (!storedOTP || !storedEmail) {
-throw new Error('No OTP session found. Please request a new OTP.');
-}
+      setIsLoading(false);
+      return { 
+        success: true, 
+        message: message || 'OTP verified successfully', 
+        user: userData ? {
+          id: userData.id,
+          name: userData.name,
+          email: userData.email,
+          dateOfBirth: userData.dob
+        } : undefined,
+        token: authToken 
+      };
+    } catch (error) {
+      setIsLoading(false);
+      return { success: false, message: (error as Error).message };
+    }
+  };
 
-if (email !== storedEmail) {
-throw new Error('Email mismatch. Please use the same email you used to request OTP.');
-}
+  const signIn = async (email: string): Promise<{ success: boolean; message: string }> => {
+    setIsLoading(true);
 
-if (otp !== storedOTP) {
-throw new Error('Invalid OTP. Please try again.');
-}
+    try {
+      await authAPI.requestOTP({
+        email,
+        mode: 'login'
+      });
 
-// Get user data
-const tempUserData = localStorage.getItem('tempUserData');
-let userObj: User;
+      setIsLoading(false);
+      return { success: true, message: `OTP sent to ${email}` };
+    } catch (error) {
+      setIsLoading(false);
+      return { success: false, message: (error as Error).message };
+    }
+  };
 
-if (tempUserData) {
-// New signup flow
-const userData = JSON.parse(tempUserData);
-userObj = {
-id: Date.now().toString(),
-...userData,
-};
-localStorage.removeItem('tempUserData');
-} else {
-// Existing user sign in
-const existingUsers = JSON.parse(localStorage.getItem('users') || '[]');
-const existingUser = existingUsers.find((u: User) => u.email === email);
+  const logout = () => {
+    setUser(null);
+    setToken(null);
+    setIsAuthenticated(false);
+    setIsLoading(false);
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    localStorage.removeItem('tempUserData');
+  };
 
-if (!existingUser) {
-throw new Error('No account found with this email.');
-}
+  const value: AuthContextType = {
+    user,
+    isAuthenticated,
+    token,
+    isLoading,
+    signUp,
+    sendOTP,
+    verifyOTP,
+    signIn,
+    logout,
+  };
 
-userObj = existingUser;
-}
-
-// Generate mock JWT token
-const newToken = `mock_jwt_${userObj.id}_${Date.now()}`;
-
-// Store user in local storage (simulate database)
-const users = JSON.parse(localStorage.getItem('users') || '[]');
-const userIndex = users.findIndex((u: User) => u.email === userObj.email);
-if (userIndex === -1) {
-users.push(userObj);
-} else {
-users[userIndex] = userObj;
-}
-localStorage.setItem('users', JSON.stringify(users));
-localStorage.setItem('token', newToken);
-
-// Clean up OTP data
-localStorage.removeItem('mockOTP');
-localStorage.removeItem('otpEmail');
-
-setUser(userObj);
-setToken(newToken);
-setIsAuthenticated(true);
-setIsLoading(false);
-
-return { success: true, message: 'Successfully signed in!', user: userObj, token: newToken };
-} catch (error) {
-setIsLoading(false);
-return { success: false, message: (error as Error).message };
-}
-};
-
-const signIn = async (email: string): Promise<{ success: boolean; message: string }> => {
-setIsLoading(true);
-
-await new Promise(resolve => setTimeout(resolve, 800));
-
-try {
-if (!email.includes('@')) {
-throw new Error('Invalid email format');
-}
-
-// Check if user exists
-const users = JSON.parse(localStorage.getItem('users') || '[]');
-const existingUser = users.find((u: User) => u.email === email);
-
-if (!existingUser) {
-throw new Error('No account found with this email. Please sign up first.');
-}
-
-// Send OTP for existing user
-const mockOTP = '123456';
-localStorage.setItem('mockOTP', mockOTP);
-localStorage.setItem('otpEmail', email);
-
-setIsLoading(false);
-return { success: true, message: `OTP sent to ${email}. Use 123456 for demo.` };
-} catch (error) {
-setIsLoading(false);
-return { success: false, message: (error as Error).message };
-}
-};
-
-const logout = () => {
-localStorage.removeItem('token');
-setUser(null);
-setToken(null);
-setIsAuthenticated(false);
-setIsLoading(false);
-};
-
-// Initialize auth state from localStorage on app start
-React.useEffect(() => {
-const storedToken = localStorage.getItem('token');
-if (storedToken && storedToken.startsWith('mock_jwt_')) {
-const userId = storedToken.split('_')[2];
-const users = JSON.parse(localStorage.getItem('users') || '[]');
-const storedUser = users.find((u: User) => u.id === userId);
-
-if (storedUser) {
-setUser(storedUser);
-setToken(storedToken);
-setIsAuthenticated(true);
-} else {
-logout();
-}
-}
-}, []);
-
-const value: AuthContextType = {
-user,
-isAuthenticated,
-token,
-isLoading,
-signUp,
-sendOTP,
-verifyOTP,
-signIn,
-logout,
-};
-
-return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

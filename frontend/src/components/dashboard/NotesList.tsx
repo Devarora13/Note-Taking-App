@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Button } from "../ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
-import { useNotes, Note } from "../../contexts/NotesContext";
+import { useNotes } from "../../contexts/NotesContext";
+import { Note } from "../../services/api";
 import { useToast } from "../../hooks/use-toast";
 import { Trash2, Calendar } from "lucide-react";
 import { format } from "date-fns";
@@ -70,16 +70,16 @@ export const NotesList: React.FC<NotesListProps> = ({ notes }) => {
   return (
     <div className="space-y-3">
       {notes.map((note) => {
-        const isExpanded = expandedNotes.has(note.id);
+        const isExpanded = expandedNotes.has(note._id);
         
         return (
           <div
-            key={note.id}
+            key={note._id}
             className="bg-card rounded-lg border border-border shadow-md hover:shadow-lg transition-all duration-200"
           >
             <div
               className="flex items-center justify-between px-4 py-3 cursor-pointer"
-              onClick={() => toggleExpanded(note.id)}
+              onClick={() => toggleExpanded(note._id)}
             >
               <div className="flex-1 min-w-0">
                 <h4 className="text-base font-medium text-foreground truncate">
@@ -92,7 +92,7 @@ export const NotesList: React.FC<NotesListProps> = ({ notes }) => {
                 size="sm"
                 onClick={(e) => {
                   e.stopPropagation(); // Prevent triggering the expand/collapse
-                  handleDeleteNote(note.id);
+                  handleDeleteNote(note._id);
                 }}
                 className="flex-shrink-0 ml-3 p-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
               >

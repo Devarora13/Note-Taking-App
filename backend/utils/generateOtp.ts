@@ -1,7 +1,7 @@
 import sgMail from "@sendgrid/mail";
 import User from "../models/User.js";
 
-sgMail.setApiKey(process.env.SENDGRID_API_KEY || "");
+sgMail.setApiKey(process.env.SENDGRID_API_KEY || '');
 
 export const generateOTP = (): string => {
   return Math.floor(100000 + Math.random() * 900000).toString(); // 6 digit
@@ -10,7 +10,7 @@ export const generateOTP = (): string => {
 export const sendOTPEmail = async (email: string, otp: string) => {
   const msg = {
     to: email,
-    from: process.env.SENDGRID_FROM || "no-reply@yourapp.com",
+    from: process.env.SENDGRID_FROM || "papertrailservice123@gmail.com",
     subject: "Your OTP Code",
     text: `Your OTP is ${otp}. It will expire in 5 minutes.`,
     html: `<p>Your OTP is <strong>${otp}</strong>. It will expire in <b>5 minutes</b>.</p>`,

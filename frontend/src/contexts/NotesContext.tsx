@@ -1,14 +1,6 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, ReactNode, useEffect, useCallback } from 'react';
 import { useAuth } from './AuthContext';
-
-export interface Note {
-  id: string;
-  title: string;
-  content: string;
-  createdAt: string;
-  updatedAt: string;
-  userId: string;
-}
+import { notesAPI, Note } from '../services/api';
 
 interface NotesState {
   notes: Note[];
@@ -41,6 +33,24 @@ export const NotesProvider: React.FC<NotesProviderProps> = ({ children }) => {
   const [isLoading, setIsLoading] = useState(false);
   const { user, token, isAuthenticated } = useAuth();
 
+  const loadNotes = useCallback(async (): Promise<void> => {
+    if (!isAuthenticated || !token) {
+      setNotes([]);
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const fetchedNotes = await notesAPI.getAllNotes();
+      setNotes(fetchedNotes);
+    } catch (error) {
+      console.error('Failed to load notes:', error);
+      setNotes([]);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [isAuthenticated, token]);
+
   const createNote = async (title: string, content: string = ''): Promise<{ success: boolean; message: string }> => {
     if (!isAuthenticated || !user || !token) {
       return { success: false, message: 'Authentication required' };
@@ -49,30 +59,9 @@ export const NotesProvider: React.FC<NotesProviderProps> = ({ children }) => {
     setIsLoading(true);
 
     try {
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 500));
-
-      if (!title.trim()) {
-        throw new Error('Note title is required');
-      }
-
-      const newNote: Note = {
-        id: Date.now().toString(),
-        title: title.trim(),
-        content: content.trim(),
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        userId: user.id,
-      };
-
-      // Store in localStorage (simulate database)
-      const allNotes = JSON.parse(localStorage.getItem('notes') || '[]');
-      allNotes.push(newNote);
-      localStorage.setItem('notes', JSON.stringify(allNotes));
-
+      const newNote = await notesAPI.createNote({ title, content });
       setNotes(prev => [newNote, ...prev]);
       setIsLoading(false);
-
       return { success: true, message: 'Note created successfully!' };
     } catch (error) {
       setIsLoading(false);
@@ -88,17 +77,9 @@ export const NotesProvider: React.FC<NotesProviderProps> = ({ children }) => {
     setIsLoading(true);
 
     try {
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 300));
-
-      // Remove from localStorage
-      const allNotes = JSON.parse(localStorage.getItem('notes') || '[]');
-      const updatedNotes = allNotes.filter((note: Note) => note.id !== noteId || note.userId !== user.id);
-      localStorage.setItem('notes', JSON.stringify(updatedNotes));
-
-      setNotes(prev => prev.filter(note => note.id !== noteId));
+      await notesAPI.deleteNote(noteId);
+      setNotes(prev => prev.filter(note => note._id !== noteId));
       setIsLoading(false);
-
       return { success: true, message: 'Note deleted successfully!' };
     } catch (error) {
       setIsLoading(false);
@@ -114,34 +95,18 @@ export const NotesProvider: React.FC<NotesProviderProps> = ({ children }) => {
     setIsLoading(true);
 
     try {
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 400));
-
-      if (!title.trim()) {
-        throw new Error('Note title is required');
-      }
-
-      // Find and update note
-      const allNotes = JSON.parse(localStorage.getItem('notes') || '[]');
-      const noteIndex = allNotes.findIndex((note: Note) => note.id === noteId && note.userId === user.id);
-      
-      if (noteIndex === -1) {
-        throw new Error('Note not found');
-      }
-
+      // Note: This would require an update endpoint in the backend
+      // For now, we'll just update locally
       const updatedNote: Note = {
-        ...allNotes[noteIndex],
-        title: title.trim(),
-        content: content.trim(),
+        _id: noteId,
+        title,
+        content,
+        createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
 
-      allNotes[noteIndex] = updatedNote;
-      localStorage.setItem('notes', JSON.stringify(allNotes));
-
-      setNotes(prev => prev.map(note => note.id === noteId ? updatedNote : note));
+      setNotes(prev => prev.map(note => note._id === noteId ? updatedNote : note));
       setIsLoading(false);
-
       return { success: true, message: 'Note updated successfully!' };
     } catch (error) {
       setIsLoading(false);
@@ -149,37 +114,14 @@ export const NotesProvider: React.FC<NotesProviderProps> = ({ children }) => {
     }
   };
 
-  const loadNotes = async (): Promise<void> => {
-    if (!isAuthenticated || !user) {
-      return;
-    }
-
-    setIsLoading(true);
-
-    try {
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 300));
-
-      // Load user's notes from localStorage
-      const allNotes = JSON.parse(localStorage.getItem('notes') || '[]');
-      const userNotes = allNotes.filter((note: Note) => note.userId === user.id);
-
-      setNotes(userNotes);
-      setIsLoading(false);
-    } catch (error) {
-      console.error('Failed to load notes:', error);
-      setIsLoading(false);
-    }
-  };
-
-  // Load notes when user authentication changes
-  React.useEffect(() => {
+  // Load notes when user authenticates
+  useEffect(() => {
     if (isAuthenticated && user) {
       loadNotes();
     } else {
       setNotes([]);
     }
-  }, [isAuthenticated, user]);
+  }, [isAuthenticated, user, loadNotes]);
 
   const value: NotesContextType = {
     notes,

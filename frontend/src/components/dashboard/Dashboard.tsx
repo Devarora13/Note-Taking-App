@@ -7,12 +7,14 @@ import { CreateNoteModal } from "./CreateNoteModal";
 import { NotesList } from "./NotesList";
 import { Loader2, Plus, LogOut } from "lucide-react";
 import { useToast } from "../../hooks/use-toast";
+import { useNavigate } from "react-router-dom";
 
 export const Dashboard: React.FC = () => {
   const { user, logout } = useAuth();
   const { notes, isLoading } = useNotes();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   const handleLogout = () => {
     logout();
@@ -20,14 +22,12 @@ export const Dashboard: React.FC = () => {
       title: "Logged out",
       description: "You have been successfully logged out.",
     });
+    navigate("/auth");
   };
 
   if (!user) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
+    navigate("/auth");
+    return null;
   }
 
   return (
