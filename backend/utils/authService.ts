@@ -1,13 +1,22 @@
 import sgMail from "@sendgrid/mail";
 import User from "../models/User.js";
 
-sgMail.setApiKey(process.env.SENDGRID_API_KEY || '');
+const configureSendGrid = () => {
+  const apiKey = process.env.SENDGRID_API_KEY;
+  if (!apiKey) {
+    throw new Error('SENDGRID_API_KEY is not configured');
+  }
+  sgMail.setApiKey(apiKey);
+  return true;
+};
 
 export const generateOTP = (): string => {
   return Math.floor(100000 + Math.random() * 900000).toString(); // 6 digit
 };
 
 export const sendOTPEmail = async (email: string, otp: string) => {
+  configureSendGrid();
+  
   const msg = {
     to: email,
     from: process.env.SENDGRID_FROM || "papertrailservice123@gmail.com",
@@ -19,7 +28,6 @@ export const sendOTPEmail = async (email: string, otp: string) => {
   await sgMail.send(msg);
 };
 
-// Save OTP to DB with expiry (also handle signup data)
 export const setUserOTP = async (
   email: string,
   otp: string,

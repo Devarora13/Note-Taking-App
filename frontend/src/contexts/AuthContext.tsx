@@ -21,6 +21,8 @@ interface AuthContextType extends AuthState {
   verifyOTP: (email: string, otp: string) => Promise<{ success: boolean; message: string; user?: User; token?: string }>;
   signIn: (email: string) => Promise<{ success: boolean; message: string }>;
   logout: () => void;
+  setUser: (user: User | null) => void;
+  setToken: (token: string | null) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -175,6 +177,26 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     localStorage.removeItem('tempUserData');
   };
 
+  // Methods for Google OAuth callback
+  const setUserExternal = (user: User | null) => {
+    setUser(user);
+    setIsAuthenticated(!!user);
+    if (user) {
+      localStorage.setItem('user', JSON.stringify(user));
+    } else {
+      localStorage.removeItem('user');
+    }
+  };
+
+  const setTokenExternal = (token: string | null) => {
+    setToken(token);
+    if (token) {
+      localStorage.setItem('token', token);
+    } else {
+      localStorage.removeItem('token');
+    }
+  };
+
   const value: AuthContextType = {
     user,
     isAuthenticated,
@@ -185,6 +207,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     verifyOTP,
     signIn,
     logout,
+    setUser: setUserExternal,
+    setToken: setTokenExternal,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

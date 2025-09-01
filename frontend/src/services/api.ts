@@ -39,6 +39,20 @@ export const authAPI = {
     });
     return handleResponse(response);
   },
+
+  // Google OAuth
+  initiateGoogleAuth: () => {
+    const baseURL = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000';
+    window.location.href = `${baseURL}/auth/google`;
+  },
+
+  getCurrentUser: async () => {
+    const response = await fetch(`${API_BASE_URL}/auth/me`, {
+      method: 'GET',
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(response);
+  },
 };
 
 // Notes API functions
