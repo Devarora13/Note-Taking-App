@@ -19,13 +19,27 @@ export const sendOTPEmail = async (email: string, otp: string) => {
   await sgMail.send(msg);
 };
 
-// save OTP to DB with expiry
-export const setUserOTP = async (email: string, otp: string) => {
+// Save OTP to DB with expiry (also handle signup data)
+export const setUserOTP = async (
+  email: string,
+  otp: string,
+  extraData?: { name: string; dob: string }
+) => {
   const expiry = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
+
+  const updateData: any = {
+    otp,
+    otpExpiry: expiry,
+  };
+
+  if (extraData) {
+    updateData.name = extraData.name;
+    updateData.dob = extraData.dob;
+  }
 
   const user = await User.findOneAndUpdate(
     { email },
-    { otp, otpExpiry: expiry },
+    updateData,
     { new: true, upsert: true } // create user if not exists
   );
 

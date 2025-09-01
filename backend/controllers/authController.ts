@@ -5,43 +5,50 @@ import { generateOTP, sendOTPEmail, setUserOTP } from "../utils/generateOtp.js";
 
 const JWT_SECRET = process.env.JWT_SECRET || "supersecret";
 
-// 1. Request OTP
+//Request OTP
 export const requestOTP = async (req: Request, res: Response) => {
   try {
-    const { name, dob, email } = req.body;
+    const { name, dob, email, mode } = req.body;
 
-    if (!name || !dob || !email) {
-      return res.status(400).json({ message: "All fields are required" });
-    }
-
-    // Generate OTP
+    const user = await User.findOne({ email });
     const otp = generateOTP();
 
-    // Save OTP to DB (create user if not exists)
-    await setUserOTP(email, otp);
+    if (mode === "signup") {
+      // create new user with OTP
+      await setUserOTP(email, otp, { name, dob });
+    } else if (mode === "login") {
+      if (!user) {
+        return res
+          .status(400)
+          .json({ message: "User not found. Please sign up first" });
+      }
+      // set OTP for existing user
+      await setUserOTP(email, otp);
+    }
 
-    // Send OTP Email
+    // Send OTP email
     await sendOTPEmail(email, otp);
 
-    res.status(200).json({ message: "OTP sent successfully to email" });
+    res.status(200).json({ message: "OTP sent successfully" });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Failed to send OTP" });
   }
 };
 
-// 2. Verify OTP
+//Verify OTP
 export const verifyOTP = async (req: Request, res: Response) => {
   try {
     const { email, otp } = req.body;
 
-    if (!email || !otp) {
-      return res.status(400).json({ message: "Email and OTP are required" });
-    }
-
     const user = await User.findOne({ email });
 
-    if (!user || user.otp !== otp || !user.otpExpiry || user.otpExpiry < new Date()) {
+    if (
+      !user ||
+      user.otp !== otp ||
+      !user.otpExpiry ||
+      user.otpExpiry < new Date()
+    ) {
       return res.status(400).json({ message: "Invalid or expired OTP" });
     }
 
@@ -51,11 +58,9 @@ export const verifyOTP = async (req: Request, res: Response) => {
     await user.save();
 
     // Generate JWT
-    const token = jwt.sign(
-      { id: user._id, email: user.email },
-      JWT_SECRET,
-      { expiresIn: "1d" }
-    );
+    const token = jwt.sign({ id: user._id, email: user.email }, JWT_SECRET, {
+      expiresIn: "1d",
+    });
 
     res.status(200).json({
       message: "OTP verified successfully",
