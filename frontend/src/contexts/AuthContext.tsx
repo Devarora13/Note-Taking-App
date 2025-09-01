@@ -224,6 +224,28 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       } else {
         logout();
       }
+    } else {
+      // Add dummy user for testing dashboard UI
+      const dummyUser: User = {
+        id: 'dummy_123',
+        name: 'John Doe',
+        email: 'john.doe@example.com',
+        dateOfBirth: '1990-01-15'
+      };
+      
+      const dummyToken = `mock_jwt_${dummyUser.id}_${Date.now()}`;
+      
+      // Store dummy user
+      localStorage.setItem('token', dummyToken);
+      const users = JSON.parse(localStorage.getItem('users') || '[]');
+      if (!users.find((u: User) => u.id === dummyUser.id)) {
+        users.push(dummyUser);
+        localStorage.setItem('users', JSON.stringify(users));
+      }
+      
+      setUser(dummyUser);
+      setToken(dummyToken);
+      setIsAuthenticated(true);
     }
   }, []);
 

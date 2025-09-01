@@ -1,18 +1,22 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../hooks/use-toast';
-import { CalendarIcon, Loader2 } from 'lucide-react';
+import { CalendarIcon, Loader2, Eye, EyeOff } from 'lucide-react';
 import { Calendar } from '../ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { format } from 'date-fns';
-import { InputOTP, InputOTPGroup, InputOTPSlot } from '../ui/input-otp';
 
-export const AuthForm: React.FC = () => {
+interface AuthFormProps {
+  onModeChange?: (mode: 'signup' | 'signin') => void;
+}
+
+export const AuthForm: React.FC<AuthFormProps> = ({ onModeChange }) => {
   const [mode, setMode] = useState<'signup' | 'signin'>('signup');
-  const [step, setStep] = useState<'details' | 'otp'>('details');
+  const [showOtpField, setShowOtpField] = useState(false);
+  const [showOtp, setShowOtp] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -22,6 +26,11 @@ export const AuthForm: React.FC = () => {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const { signUp, signIn, verifyOTP, isLoading } = useAuth();
   const { toast } = useToast();
+
+  // Notify parent of initial mode
+  useEffect(() => {
+    onModeChange?.(mode);
+  }, [mode, onModeChange]);
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
@@ -82,7 +91,7 @@ export const AuthForm: React.FC = () => {
           title: "Success!",
           description: result.message,
         });
-        setStep('otp');
+        setShowOtpField(true);
       } else {
         toast({
           title: "Error",
@@ -149,77 +158,8 @@ export const AuthForm: React.FC = () => {
     }
   };
 
-  if (step === 'otp') {
-    return (
-      <form onSubmit={handleOtpSubmit} className="space-y-6">
-        <div className="space-y-4">
-          <div>
-            <div className="relative">
-              <Label htmlFor="otp" className="absolute -top-2 left-3 bg-background px-1 text-xs font-medium text-muted-foreground z-10">
-                OTP
-              </Label>
-              <div className="flex justify-center">
-                <InputOTP
-                  maxLength={6}
-                  value={formData.otp}
-                  onChange={(value) => setFormData({ ...formData, otp: value })}
-                >
-                  <InputOTPGroup>
-                    <InputOTPSlot index={0} />
-                    <InputOTPSlot index={1} />
-                    <InputOTPSlot index={2} />
-                    <InputOTPSlot index={3} />
-                    <InputOTPSlot index={4} />
-                    <InputOTPSlot index={5} />
-                  </InputOTPGroup>
-                </InputOTP>
-              </div>
-              {errors.otp && <p className="text-sm text-destructive mt-2 text-center">{errors.otp}</p>}
-            </div>
-          </div>
-
-          <div className="text-center">
-            <button
-              type="button"
-              onClick={resendOTP}
-              className="text-primary hover:underline text-sm"
-              disabled={isLoading}
-            >
-              Resend OTP
-            </button>
-          </div>
-        </div>
-
-        <Button
-          type="submit"
-          className="w-full btn-primary text-lg py-6"
-          disabled={isLoading}
-        >
-          {isLoading ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Verifying...
-            </>
-          ) : (
-            'Verify & Continue'
-          )}
-        </Button>
-
-        <div className="text-center">
-          <button
-            type="button"
-            onClick={() => setStep('details')}
-            className="text-muted-foreground hover:text-foreground text-sm"
-          >
-            ← Back to {mode === 'signup' ? 'sign up' : 'sign in'}
-          </button>
-        </div>
-      </form>
-    );
-  }
-
   return (
-    <form onSubmit={handleDetailsSubmit} className="space-y-6">
+    <form onSubmit={showOtpField ? handleOtpSubmit : handleDetailsSubmit} className="space-y-6">
       <div className="space-y-4">
         {mode === 'signup' && (
           <>
@@ -234,6 +174,7 @@ export const AuthForm: React.FC = () => {
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 className={`py-5 ${errors.name ? 'border-destructive' : ''}`}
+                disabled={showOtpField}
               />
               {errors.name && <p className="text-sm text-destructive mt-1">{errors.name}</p>}
             </div>
@@ -247,6 +188,7 @@ export const AuthForm: React.FC = () => {
                   <Button
                     variant="outline"
                     className={`w-full justify-start text-left font-normal py-5 ${errors.dateOfBirth ? 'border-destructive' : ''}`}
+                    disabled={showOtpField}
                   >
                     <CalendarIcon className="h-4 w-4" />
                     {formData.dateOfBirth ? (
@@ -284,9 +226,54 @@ export const AuthForm: React.FC = () => {
             value={formData.email}
             onChange={(e) => setFormData({ ...formData, email: e.target.value })}
             className={`py-5 ${errors.email ? 'border-destructive' : ''}`}
+            disabled={showOtpField}
           />
           {errors.email && <p className="text-sm text-destructive mt-1">{errors.email}</p>}
         </div>
+
+        {showOtpField && (
+          <div>
+            <div className="relative">
+              <Label htmlFor="otp" className="absolute -top-2 left-3 bg-background px-1 text-xs font-medium text-muted-foreground z-10">
+                OTP
+              </Label>
+              <div className="relative">
+                <Input
+                  id="otp"
+                  type={showOtp ? "text" : "password"}
+                  placeholder="OTP"
+                  value={formData.otp}
+                  onChange={(e) => setFormData({ ...formData, otp: e.target.value })}
+                  className={`py-5 pr-10 ${errors.otp ? 'border-destructive' : ''}`}
+                  maxLength={6}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowOtp(!showOtp)}
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-muted-foreground hover:text-foreground"
+                >
+                  {showOtp ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
+                </button>
+              </div>
+              {errors.otp && <p className="text-sm text-destructive mt-2">{errors.otp}</p>}
+            </div>
+
+            <div className="text-center mt-4">
+              <button
+                type="button"
+                onClick={resendOTP}
+                className="text-primary hover:underline text-sm"
+                disabled={isLoading}
+              >
+                Resend OTP
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       <Button
@@ -297,10 +284,10 @@ export const AuthForm: React.FC = () => {
         {isLoading ? (
           <>
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            {mode === 'signup' ? 'Creating Account...' : 'Sending OTP...'}
+            {showOtpField ? 'Verifying...' : mode === 'signup' ? 'Creating Account...' : 'Sending OTP...'}
           </>
         ) : (
-          'Get OTP'
+          showOtpField ? 'Verify & Continue' : 'Get OTP'
         )}
       </Button>
 
@@ -311,10 +298,12 @@ export const AuthForm: React.FC = () => {
         <button
           type="button"
           onClick={() => {
-            setMode(mode === 'signup' ? 'signin' : 'signup');
-            setStep('details');
+            const newMode = mode === 'signup' ? 'signin' : 'signup';
+            setMode(newMode);
+            setShowOtpField(false);
             setFormData({ name: '', email: '', dateOfBirth: undefined, otp: '' });
             setErrors({});
+            onModeChange?.(newMode);
           }}
           className="text-primary hover:underline font-medium underline underline-offset-4"
         >

@@ -27,9 +27,9 @@ const App = () => (
               <Route 
                 path="/dashboard" 
                 element={
-                  <ProtectedRoute>
+                  // <ProtectedRoute>
                     <Dashboard />
-                  </ProtectedRoute>
+                  // </ProtectedRoute>
                 } 
               />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

@@ -39,6 +39,11 @@ export const CreateNoteModal: React.FC<CreateNoteModalProps> = ({
       return;
     }
 
+    if (!formData.content.trim()) {
+      setError('Note content is required');
+      return;
+    }
+
     try {
       const result = await createNote(formData.title, formData.content);
 
@@ -100,7 +105,7 @@ export const CreateNoteModal: React.FC<CreateNoteModalProps> = ({
 
           <div>
             <Label htmlFor="content" className="text-sm font-medium text-foreground">
-              Content (Optional)
+              Content
             </Label>
             <Textarea
               id="content"
@@ -125,7 +130,7 @@ export const CreateNoteModal: React.FC<CreateNoteModalProps> = ({
             <Button
               type="submit"
               className="flex-1 btn-primary"
-              disabled={isLoading || !formData.title.trim()}
+              disabled={isLoading || !formData.title.trim() || !formData.content.trim()}
             >
               {isLoading ? (
                 <>

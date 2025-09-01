@@ -1,10 +1,10 @@
-import React from 'react';
-import { Button } from '../ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
-import { useNotes, Note } from '../../contexts/NotesContext';
-import { useToast } from '../../hooks/use-toast';
-import { Trash2, Calendar } from 'lucide-react';
-import { format } from 'date-fns';
+import React, { useState } from "react";
+import { Button } from "../ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
+import { useNotes, Note } from "../../contexts/NotesContext";
+import { useToast } from "../../hooks/use-toast";
+import { Trash2, Calendar } from "lucide-react";
+import { format } from "date-fns";
 
 interface NotesListProps {
   notes: Note[];
@@ -13,6 +13,19 @@ interface NotesListProps {
 export const NotesList: React.FC<NotesListProps> = ({ notes }) => {
   const { deleteNote } = useNotes();
   const { toast } = useToast();
+  const [expandedNotes, setExpandedNotes] = useState<Set<string>>(new Set());
+
+  const toggleExpanded = (noteId: string) => {
+    setExpandedNotes(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(noteId)) {
+        newSet.delete(noteId);
+      } else {
+        newSet.add(noteId);
+      }
+      return newSet;
+    });
+  };
 
   const handleDeleteNote = async (noteId: string) => {
     try {
@@ -44,7 +57,9 @@ export const NotesList: React.FC<NotesListProps> = ({ notes }) => {
         <div className="w-24 h-24 mx-auto mb-4 bg-muted rounded-full flex items-center justify-center">
           <Calendar className="h-10 w-10 text-muted-foreground" />
         </div>
-        <h3 className="text-lg font-medium text-foreground mb-2">No notes yet</h3>
+        <h3 className="text-lg font-medium text-foreground mb-2">
+          No notes yet
+        </h3>
         <p className="text-muted-foreground">
           Create your first note to get started organizing your thoughts.
         </p>
@@ -53,40 +68,48 @@ export const NotesList: React.FC<NotesListProps> = ({ notes }) => {
   }
 
   return (
-    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-      {notes.map((note) => (
-        <Card key={note.id} className="note-card group">
-          <CardHeader className="pb-3">
-            <div className="flex items-start justify-between">
-              <CardTitle className="text-lg font-semibold text-foreground line-clamp-2">
-                {note.title}
-              </CardTitle>
+    <div className="space-y-3">
+      {notes.map((note) => {
+        const isExpanded = expandedNotes.has(note.id);
+        
+        return (
+          <div
+            key={note.id}
+            className="bg-card rounded-lg border border-border shadow-md hover:shadow-lg transition-all duration-200"
+          >
+            <div
+              className="flex items-center justify-between px-4 py-3 cursor-pointer"
+              onClick={() => toggleExpanded(note.id)}
+            >
+              <div className="flex-1 min-w-0">
+                <h4 className="text-base font-medium text-foreground truncate">
+                  {note.title}
+                </h4>
+              </div>
+
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => handleDeleteNote(note.id)}
-                className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
+                onClick={(e) => {
+                  e.stopPropagation(); // Prevent triggering the expand/collapse
+                  handleDeleteNote(note.id);
+                }}
+                className="flex-shrink-0 ml-3 p-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
               >
                 <Trash2 className="h-4 w-4" />
               </Button>
             </div>
-          </CardHeader>
-          
-          {note.content && (
-            <CardContent className="pt-0">
-              <p className="text-muted-foreground text-sm line-clamp-3">
-                {note.content}
-              </p>
-            </CardContent>
-          )}
-          
-          <CardContent className="pt-0">
-            <div className="text-xs text-muted-foreground">
-              Created {format(new Date(note.createdAt), 'MMM d, yyyy')}
-            </div>
-          </CardContent>
-        </Card>
-      ))}
+
+            {isExpanded && note.content && (
+              <div className="px-4 pb-4 border-t border-border/50">
+                <p className="text-sm text-muted-foreground mt-3 whitespace-pre-wrap">
+                  {note.content}
+                </p>
+              </div>
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 };
