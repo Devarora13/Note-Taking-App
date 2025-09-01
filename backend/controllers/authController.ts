@@ -1,7 +1,7 @@
 import type { Request, Response } from "express";
 import jwt from "jsonwebtoken";
 import User from "../models/User.js";
-import { generateOTP, sendOTPEmail, setUserOTP } from "../utils/generateOtp.js";
+import { generateOTP, sendOTPEmail, setUserOTP } from "../utils/authService.js";
 
 const JWT_SECRET = process.env.JWT_SECRET || "supersecret";
 

@@ -119,7 +119,6 @@ export const AuthForm: React.FC<AuthFormProps> = ({ onModeChange }) => {
           title: "Welcome!",
           description: result.message,
         });
-        // Navigation will be handled by the auth context
       } else {
         toast({
           title: "Error",
@@ -192,27 +191,30 @@ export const AuthForm: React.FC<AuthFormProps> = ({ onModeChange }) => {
               >
                 Date of Birth
               </Label>
-              <Input
-                id="dateOfBirth"
-                type="date"
-                value={
-                  formData.dateOfBirth
-                    ? formData.dateOfBirth.toISOString().split("T")[0]
-                    : ""
-                }
-                onChange={(e) => {
-                  const dateValue = e.target.value
-                    ? new Date(e.target.value)
-                    : undefined;
-                  setFormData({ ...formData, dateOfBirth: dateValue });
-                }}
-                className={`py-5 ${
-                  errors.dateOfBirth ? "border-destructive" : ""
-                }`}
-                disabled={showOtpField}
-                max={new Date().toISOString().split("T")[0]}
-                min="1900-01-01"
-              />
+              <div className="relative">
+                <CalendarIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground z-10 pointer-events-none" />
+                <Input
+                  id="dateOfBirth"
+                  type="date"
+                  value={
+                    formData.dateOfBirth
+                      ? formData.dateOfBirth.toISOString().split("T")[0]
+                      : ""
+                  }
+                  onChange={(e) => {
+                    const dateValue = e.target.value
+                      ? new Date(e.target.value)
+                      : undefined;
+                    setFormData({ ...formData, dateOfBirth: dateValue });
+                  }}
+                  className={`py-5 pl-10 ${
+                    errors.dateOfBirth ? "border-destructive" : ""
+                  } [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer`}
+                  disabled={showOtpField}
+                  max={new Date().toISOString().split("T")[0]}
+                  min="1900-01-01"
+                />
+              </div>
               {errors.dateOfBirth && (
                 <p className="text-sm text-destructive mt-1">
                   {errors.dateOfBirth}
