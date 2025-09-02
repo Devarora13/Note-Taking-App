@@ -1,10 +1,12 @@
 # Note-Taking Application
 
-A full-stack note-taking application built with React, Express.js, and MongoDB. Features secure email-based authentication with OTP verification and a beautiful, responsive user interface.
+A full-stack note-taking application built with React, Express.js, and MongoDB. Features secure authentication with both email-based OTP verification and Google OAuth, plus a beautiful, responsive user interface.
 
 ## 🚀 Features
 
-- **Secure Authentication**: Email-based signup and login with OTP verification
+- **Multi-Authentication Options**: 
+  - Email-based signup and login with OTP verification
+  - Google OAuth integration for quick sign-in
 - **Note Management**: Create, view, and delete personal notes
 - **Responsive Design**: Mobile-friendly interface that works on all devices
 - **Real-time Validation**: Form validation with helpful error messages
@@ -26,6 +28,7 @@ A full-stack note-taking application built with React, Express.js, and MongoDB. 
 - TypeScript
 - MongoDB with Mongoose
 - JWT (authentication)
+- Passport.js with Google OAuth 2.0
 - SendGrid (email service)
 - Zod (validation)
 
@@ -37,6 +40,7 @@ Before running this application, make sure you have:
 - npm or yarn
 - MongoDB (local or MongoDB Atlas)
 - SendGrid account for email services
+- Google Cloud Console project (for Google OAuth)
 
 ## ⚡ Quick Start
 
@@ -68,6 +72,8 @@ JWT_SECRET=your-super-secret-jwt-key
 SENDGRID_API_KEY=your-sendgrid-api-key
 SENDGRID_FROM=your-verified-sender-email@domain.com
 FRONTEND_URL=http://localhost:8080
+GOOGLE_CLIENT_ID=your-google-oauth-client-id
+GOOGLE_CLIENT_SECRET=your-google-oauth-client-secret
 ```
 
 **Start the backend server:**
@@ -122,6 +128,11 @@ npm run build
 - `POST /api/auth/request-otp` - Request OTP for signup/signin
 - `POST /api/auth/verify-otp` - Verify OTP and get JWT token
 
+### Google OAuth
+- `GET /auth/google` - Initiate Google OAuth flow
+- `GET /auth/google/callback` - Google OAuth callback
+- `GET /auth/me` - Get current user info
+
 ### Notes (Protected Routes)
 - `GET /api/notes` - Get all user notes
 - `POST /api/notes` - Create a new note
@@ -138,8 +149,10 @@ npm run build
 ## 🔐 Security Features
 
 - **JWT Authentication**: Secure token-based authentication
+- **Multiple Auth Methods**: Email OTP and Google OAuth integration
 - **Input Validation**: Both frontend and backend validation
 - **OTP Verification**: Email-based two-factor authentication
+- **OAuth Security**: Secure Google OAuth 2.0 implementation
 - **Protected Routes**: API endpoints secured with middleware
 - **Error Handling**: Comprehensive error handling and user feedback
 
@@ -153,6 +166,8 @@ JWT_SECRET=your-jwt-secret
 SENDGRID_API_KEY=your-sendgrid-api-key
 SENDGRID_FROM=your-verified-email
 FRONTEND_URL=http://localhost:8080
+GOOGLE_CLIENT_ID=your-google-oauth-client-id
+GOOGLE_CLIENT_SECRET=your-google-oauth-client-secret
 ```
 
 ### Frontend (.env)
@@ -160,7 +175,39 @@ FRONTEND_URL=http://localhost:8080
 VITE_API_URL=http://localhost:5000/api
 ```
 
-## 🚀 Deployment
+## � Google OAuth Setup
+
+To enable Google authentication, you'll need to set up a Google Cloud Console project:
+
+### 1. Create Google Cloud Project
+1. Go to [Google Cloud Console](https://console.cloud.google.com/)
+2. Create a new project or select an existing one
+3. Enable the Google+ API
+
+### 2. Configure OAuth Consent Screen
+1. Navigate to "APIs & Services" > "OAuth consent screen"
+2. Choose "External" for user type
+3. Fill in the required information:
+   - App name
+   - User support email
+   - Developer contact information
+
+### 3. Create OAuth 2.0 Credentials
+1. Go to "APIs & Services" > "Credentials"
+2. Click "Create Credentials" > "OAuth 2.0 Client IDs"
+3. Choose "Web application"
+4. Add authorized redirect URIs:
+   - `http://localhost:5000/auth/google/callback` (development)
+   - `https://yourdomain.com/auth/google/callback` (production)
+5. Copy the Client ID and Client Secret to your `.env` file
+
+### 4. Test Google Auth
+- The Google sign-in button will appear on the auth page
+- Users can sign in with their Google account
+- New users are automatically created and verified
+- Existing users with matching emails are linked to their Google account
+
+## �🚀 Deployment
 
 ### Backend Deployment (Railway/Render/Vercel)
 1. Connect your repository to your chosen platform
@@ -196,6 +243,8 @@ This project is licensed under the MIT License.
 - [Tailwind CSS](https://tailwindcss.com/) for styling
 - [SendGrid](https://sendgrid.com/) for email services
 - [MongoDB](https://mongodb.com/) for database
+- [Passport.js](https://www.passportjs.org/) for authentication strategies
+- [Google OAuth 2.0](https://developers.google.com/identity/protocols/oauth2) for secure social login
 
 ---
 
