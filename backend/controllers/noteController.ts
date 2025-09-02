@@ -1,12 +1,9 @@
 import type { Request, Response } from "express";
 import Note from "../models/Note.js";
-
-interface AuthRequest extends Request {
-  user?: { id: string };
-}
+import "../types/auth.js"; // Import to ensure type augmentation is loaded
 
 // Create Note
-export const createNote = async (req: AuthRequest, res: Response) => {
+export const createNote = async (req: Request, res: Response) => {
   try {
     const { title, content } = req.body;
 
@@ -27,7 +24,7 @@ export const createNote = async (req: AuthRequest, res: Response) => {
 };
 
 // Get All Notes for User
-export const getNotes = async (req: AuthRequest, res: Response) => {
+export const getNotes = async (req: Request, res: Response) => {
   try {
     const notes = await Note.find({ user: req.user?.id }).sort({ createdAt: -1 });
     res.json(notes);
@@ -37,7 +34,7 @@ export const getNotes = async (req: AuthRequest, res: Response) => {
 };
 
 // Delete Note
-export const deleteNote = async (req: AuthRequest, res: Response) => {
+export const deleteNote = async (req: Request, res: Response) => {
   try {
     const note = await Note.findOneAndDelete({
       _id: req.params.id,

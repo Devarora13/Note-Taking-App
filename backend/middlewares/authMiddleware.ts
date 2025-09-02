@@ -1,21 +1,11 @@
 import type { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
+import type { JwtPayload } from "../types/auth.js";
 
 const JWT_SECRET: string = process.env.JWT_SECRET || "supersecret";
 
-interface JwtPayload {
-  id: string;
-  email: string;
-  iat?: number;
-  exp?: number;
-}
-
-interface AuthRequest extends Request {
-  user?: JwtPayload;
-}
-
 export const protect = (
-  req: AuthRequest,
+  req: Request,
   res: Response,
   next: NextFunction
 ) => {
